@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import NoteModel, { Note } from "../models/note.model";
+import createHttpError from "http-errors";
+import mongoose from "mongoose";
 
 export const getNotes = async (req: Request, res: Response<Note[]>, next: NextFunction) => {
     try {
@@ -32,19 +34,34 @@ export const getNotes = async (req: Request, res: Response<Note[]>, next: NextFu
 */
 
 export const getNoteById = async (req: Request<{ noteId: string }>, res: Response<Note>, next: NextFunction) => {
-    const { noteId, } = req.params;
+    const { noteId } = req.params;
     try {
+        if (!mongoose.isValidObjectId(noteId)) {
+            throw createHttpError(400, "Invalid note id");
+        }
+
         const note = await NoteModel.findById(noteId).exec();
-        if (!note) return next(new Error("Note id not found"));
+        if (!note) {
+            throw createHttpError(404, "Note not found");
+        }
         res.status(200).json(note);
     } catch (error) {
         next(error);
     }
 };
 
-export const createNote = async (req: Request<never, never, Note>, res: Response<Note>, next: NextFunction) => {
+interface CreateNoteBody {
+    title?: string;
+    text?: string;
+};
+
+export const createNote = async (req: Request<unknown, unknown, CreateNoteBody, unknown>, res: Response<Note>, next: NextFunction) => {
     const { title, text } = req.body;
     try {
+        if (!title) {
+            throw createHttpError(400, "Note must have a title");
+        }
+
         const newNote = await NoteModel.create({ title, text });
         res.status(201).json(newNote);
     } catch (error) {
