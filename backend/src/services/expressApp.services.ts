@@ -1,18 +1,15 @@
 import "dotenv/config"
 import express, { Application, NextFunction, Request, Response } from "express";
-import NoteModel from "../models/note.model";
+import noteRoutes from "../routes/notes.routes";
+import morgan from "morgan";
 
 const app: Application = express();
 
-app.get("/", async (req, res, next) => {
-    try {
-        // throw Error("Something went wrong!");
-        const notes = await NoteModel.find().exec();
-        res.status(200).json(notes);
-    } catch (error) {
-        next(error);
-    }
-});
+app.use(morgan("dev"))
+
+app.use(express.json());
+
+app.use("/api/notes", noteRoutes);
 
 app.use((req, res, next) => {
     next(Error("Endpoint Not Found"));
