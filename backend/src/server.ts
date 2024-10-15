@@ -1,11 +1,13 @@
-import express from "express";
-const app = express();
-const port = 5000;
+import app from "./services/expressApp.services";
+import dbConnection from "./services/dbConnection.services";
+import env from "./utils/validateEnv";
 
-app.get("/", (req, res) => {
-    res.send("Welcome homapage!");
-})
+const port = env.PORT;
 
+// Connect to MongoDB
+dbConnection();
+
+// Start the server
 app.listen(port, () => {
     console.log(`Server running on port: ${port}`);
 });
