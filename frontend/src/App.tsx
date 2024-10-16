@@ -1,22 +1,29 @@
-import React, { useState } from 'react';
-import logo from './logo.svg';
+import { useEffect, useState } from 'react';
 import './App.css';
-import { Button } from 'react-bootstrap';
+import { Note } from './models/note.model';
 
 function App() {
-  const [clickCount, setClickCount] = useState(0);
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  useEffect(() => {
+    async function loadNotes() {
+      try {
+        const response = await fetch("/api/notes", {
+          method: "GET",
+        });
+        const notesRes = await response.json();
+        setNotes(notesRes);
+      } catch (error) {
+        console.log(error);
+        alert(error);
+      }
+    }
+    loadNotes();
+  }, []);
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Subscribe to Coding in Flow
-        </p>
-        <Button onClick={() => setClickCount(clickCount + 1)}>
-          Click {clickCount} times
-        </Button>
-      </header>
+      {JSON.stringify(notes)}
     </div>
   );
 }
