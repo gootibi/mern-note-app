@@ -27,7 +27,7 @@ function App() {
             }
         }
         fetchLoggedInUser();
-    }, [])
+    }, []);
 
     return (
         <div>

@@ -3,10 +3,15 @@ import createHttpError from "http-errors";
 import mongoose from "mongoose";
 import { CreateNoteBody, NoteIdParams, UpdateNoteBody } from "../interface";
 import NoteModel, { Note } from "../models/note.model";
+import { assertIsDefined } from "../utils/assertIsDefined";
 
 export const getNotes = async (req: Request, res: Response<Note[]>, next: NextFunction) => {
+    const authenticatedUserId = req.session.userId;
+
     try {
-        const notes = await NoteModel.find().exec();
+        assertIsDefined(authenticatedUserId);
+
+        const notes = await NoteModel.find({ userId: authenticatedUserId }).exec();
         res.status(200).json(notes);
     } catch (error) {
         next(error);
@@ -36,7 +41,11 @@ export const getNotes = async (req: Request, res: Response<Note[]>, next: NextFu
 
 export const getNoteById = async (req: Request<NoteIdParams>, res: Response<Note>, next: NextFunction) => {
     const { noteId } = req.params;
+    const authenticatedUserId = req.session.userId;
+
     try {
+        assertIsDefined(authenticatedUserId);
+
         if (!mongoose.isValidObjectId(noteId)) {
             throw createHttpError(400, "Invalid note id");
         }
@@ -44,6 +53,10 @@ export const getNoteById = async (req: Request<NoteIdParams>, res: Response<Note
         const note = await NoteModel.findById(noteId).exec();
         if (!note) {
             throw createHttpError(404, "Note not found");
+        }
+
+        if (!note.userId.equals(authenticatedUserId)) {
+            throw createHttpError(401, "You cannot access this note");
         }
         res.status(200).json(note);
     } catch (error) {
@@ -53,12 +66,20 @@ export const getNoteById = async (req: Request<NoteIdParams>, res: Response<Note
 
 export const createNote = async (req: Request<unknown, unknown, CreateNoteBody, unknown>, res: Response<Note>, next: NextFunction) => {
     const { title, text } = req.body;
+    const authenticatedUserId = req.session.userId;
+
     try {
+        assertIsDefined(authenticatedUserId);
+
         if (!title) {
             throw createHttpError(400, "Note must have a title");
         }
 
-        const newNote = await NoteModel.create({ title, text });
+        const newNote = await NoteModel.create({
+            userId: authenticatedUserId,
+            title,
+            text
+        });
         res.status(201).json(newNote);
     } catch (error) {
         next(error);
@@ -68,7 +89,11 @@ export const createNote = async (req: Request<unknown, unknown, CreateNoteBody, 
 export const updateNote = async (req: Request<NoteIdParams, unknown, UpdateNoteBody, unknown>, res: Response<Note>, next: NextFunction) => {
     const { noteId } = req.params;
     const { title, text } = req.body;
+    const authenticatedUserId = req.session.userId;
+
     try {
+        assertIsDefined(authenticatedUserId);
+
         if (!mongoose.isValidObjectId(noteId)) {
             throw createHttpError(400, "Invalid note id");
         }
@@ -81,6 +106,10 @@ export const updateNote = async (req: Request<NoteIdParams, unknown, UpdateNoteB
 
         if (!updatedNote) {
             throw createHttpError(404, "Note not found");
+        }
+
+        if (!updatedNote.userId.equals(authenticatedUserId)) {
+            throw createHttpError(401, "You cannot access this note");
         }
 
         updatedNote.title = title;
@@ -99,7 +128,11 @@ export const updateNote = async (req: Request<NoteIdParams, unknown, UpdateNoteB
 
 export const deleteNote = async (req: Request<NoteIdParams, unknown, unknown, unknown>, res: Response, next: NextFunction) => {
     const { noteId } = req.params;
+    const authenticatedUserId = req.session.userId;
+
     try {
+        assertIsDefined(authenticatedUserId);
+
         if (!mongoose.isValidObjectId(noteId)) {
             throw createHttpError(400, "Invalid note id");
         }
@@ -107,6 +140,10 @@ export const deleteNote = async (req: Request<NoteIdParams, unknown, unknown, un
         const deleteNote = await NoteModel.findById(noteId).exec();
         if (!deleteNote) {
             throw createHttpError(404, "Note not found");
+        }
+
+        if (!deleteNote.userId.equals(authenticatedUserId)) {
+            throw createHttpError(401, "You cannot access this note");
         }
 
         await NoteModel.deleteOne({ _id: noteId });
