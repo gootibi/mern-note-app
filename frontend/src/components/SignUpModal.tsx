@@ -1,10 +1,12 @@
-import { Button, Form, Modal } from "react-bootstrap";
+import { Alert, Button, Form, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { User } from "../models/user.model";
 import * as UserApi from "../network/user_api";
 import { SignUpCredentials } from "../network/user_api";
 import styleUtils from "../styles/utils.module.css";
 import TextInputField from "./form/TextInputField";
+import { useState } from "react";
+import { ConflictError } from "../errors/http_errors";
 
 interface SignUpModelProps {
     onDismiss: () => void;
@@ -12,6 +14,8 @@ interface SignUpModelProps {
 };
 
 const SignUpModal = ({ onDismiss, onSignUpSuccessful }: SignUpModelProps) => {
+
+    const [errorText, setErrorText] = useState<string | null>(null);
 
     const {
         register,
@@ -27,8 +31,13 @@ const SignUpModal = ({ onDismiss, onSignUpSuccessful }: SignUpModelProps) => {
             const newUser = await UserApi.signUp(credentials);
             onSignUpSuccessful(newUser);
         } catch (error) {
+
+            if (error instanceof ConflictError) {
+                setErrorText(error.message);
+            } else {
+                alert(error);
+            }
             console.error(error);
-            alert(error);
         }
     }
 
@@ -39,6 +48,14 @@ const SignUpModal = ({ onDismiss, onSignUpSuccessful }: SignUpModelProps) => {
             </Modal.Header>
 
             <Modal.Body>
+
+                {
+                    errorText &&
+                    <Alert variant="danger">
+                        {errorText}
+                    </Alert>
+                }
+
                 <Form onSubmit={handleSubmit(onSumbit)}>
 
                     <TextInputField
